@@ -1,3 +1,5 @@
+![License Creative Commons](https://i.creativecommons.org/l/by-nc/4.0/88x31.png)
+
 # Kupiki-Hotspot v0.1
 
 ### This project is using part of the [netinstall version of Raspbian](https://github.com/debian-pi/raspbian-ua-netinst)
