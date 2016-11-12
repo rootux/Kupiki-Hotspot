@@ -18,7 +18,7 @@
 - a working Ethernet connection with Internet connectivity
 
 ## Installing the Hotspot
-1. From your favorite OS, format your SD card as a FAT32 disk. One partition is enought.
+1. From your favorite OS, format your SD card as a FAT32 disk. One partition is enought (On Mac OS X, partition needs to be in MBR).
 2. Copy all files on your SD card
 3. Put the SD card in the Raspberry Pi, power it on and cross your fingers will the system is installed
 
