@@ -1,4 +1,4 @@
-#!/bin/sh -e
+#!/bin/bash
 
 # PLEASE EDIT NEXT LINES TO DEFINE YOUR OWN CONFIGURATION
 
@@ -17,6 +17,12 @@ HOTSPOT_IP="192.168.10.1"
 HOTSPOT_NETWORK="192.168.10.0"
 # Secret word for CoovaChilli
 COOVACHILLI_SECRETKEY="change-me" 
+# WAN interface (the one with Internet)
+WAN_INTERFACE="eth0"
+# LAN interface (the one for the hotspot)
+LAN_INTERFACE="wlan0"
+# Wifi driver
+LAN_WIFI_DRIVER="nl80211"
 
 # *************************************
 #
@@ -24,10 +30,6 @@ COOVACHILLI_SECRETKEY="change-me"
 #
 # *************************************
 
-# WAN interface (the one with Internet)
-WAN_INTERFACE="eth0"
-# LAN interface (the one for the hotspot)
-LAN_INTERFACE="wlan0"
 # CoovaChilli GIT URL
 COOVACHILLI_ARCHIVE="https://github.com/coova/coova-chilli.git"
 # Daloradius URL
@@ -95,25 +97,17 @@ prepare_install
 
 #nextstep:
 
-execute_command "ifup $WAN_INTERFACE" true "Activating the WAN interface"
+execute_command "apt-get update" true "Updating system"
+execute_command "apt-get upgrade -y" true "Upgrading all packages"
+execute_command "apt-get install -y --force-yes apt-transport-https" true "Adding HTTPS support for apt-get (Raspbian Lite compatiblity)"
 
-# To get Internet access up with DNS solving for apt-get commands
-sleep 5
-
-#execute_command "apt-get update" true "Updating system"
-#execute_command "apt-get upgrade -y" true "Upgrading all packages"
-
-
-#execute_command "ifconfig -a | grep wlan0" false "Checking if wlan0 interface already exists"
-IS_WLAN0=`ifconfig -a | grep wlan0 | wc -l`
-if [ $IS_WLAN0 -eq 0 ]; then
-#if [ $COMMAND_RESULT -ne 0 ]; then
-#    display_message "Wifi interface not found. Upgrading the system first"
-#    execute_command "apt dist-upgrade -y --force-yes" true "Upgrading the distro. Be patient"
-    execute_command "apt-get install apt-utils firmware-brcm80211 -y --force-yes" true "Install RPi3 Wifi firmware"
-    reboot
-#    display_message "Please reboot and run the script again"
-#    exit 1
+execute_command "ifconfig -a | grep $LAN_INTERFACE" false "Checking if wlan0 interface already exists"
+if [ $COMMAND_RESULT -ne 0 ]; then
+    display_message "Wifi interface not found. Upgrading the system first"
+    execute_command "apt dist-upgrade -y --force-yes" true "Upgrading the distro. Be patient"
+    execute_command "apt-get install apt-utils firmware-brcm80211 -y --force-yes" true "Install Wifi firmware"
+    display_message "Please reboot and run the script again"
+    exit 1
 fi
 
 display_message "Update interface configuration"
@@ -129,12 +123,15 @@ iface $LAN_INTERFACE inet static
 EOT
 check_returned_code $?
 
+execute_command "ifup $WAN_INTERFACE" true "Activating the WAN interface"
 execute_command "ifup $LAN_INTERFACE" true "Activating the LAN interface"
 
 execute_command "apt-get install -y --force-yes debconf-utils" true "Installing debconf tools"
 
 execute_command "echo 'mysql-server mysql-server/root_password password $MYSQL_PASSWORD' | debconf-set-selections" true "Adding MySql password"
+#execute_command "debconf-set-selections <<< 'mysql-server mysql-server/root_password password $MYSQL_PASSWORD'" true "Adding MySql password"
 execute_command "echo 'mysql-server mysql-server/root_password_again password $MYSQL_PASSWORD' | debconf-set-selections" true "Adding MySql password (confirmation)"
+#execute_command "debconf-set-selections <<< 'mysql-server mysql-server/root_password_again password $MYSQL_PASSWORD'" true "Adding MySql password (confirmation)"
 execute_command "apt-get install -y --force-yes debhelper libssl-dev libcurl4-gnutls-dev mysql-server freeradius freeradius-mysql gcc make libnl1 libnl-dev pkg-config iptables" true "Installing MySql, freeradius, iptables and other dependencies"
 
 display_message "Creating freeradius database"
@@ -209,7 +206,7 @@ display_message "Configuring CoovaChilli secret key"
 sed -i "s/HS_UAMSECRET=change-me/HS_UAMSECRET=$COOVACHILLI_SECRETKEY/g" /etc/chilli/defaults
 check_returned_code $?
 
-display_message "Configuring CoovaChilli secret key"
+display_message "Configuring CoovaChilli hotspot SSID"
 sed -i "s/\# HS_SSID=<ssid>/HS_SSID=$HOTSPOT_NAME/g" /etc/chilli/defaults
 check_returned_code $?
 
@@ -240,7 +237,7 @@ echo 'DAEMON_CONF="/etc/hostapd/hostapd.conf"' >> /etc/default/hostapd
 check_returned_code $?
 display_message "Configuring hostapd"
 echo "interface=$LAN_INTERFACE
-driver=nl80211
+driver=$LAN_WIFI_DRIVER
 ssid=$HOTSPOT_NAME
 hw_mode=g
 channel=6
