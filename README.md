@@ -22,6 +22,11 @@
 2. Copy all files on your SD card
 3. Put the SD card in the Raspberry Pi, power it on and cross your fingers will the system is installed
 
+## Logging in
+Username:root
+Password:raspbian
+
+
 This work is licensed under the Creative Commons Attribution-NonCommercial 4.0 International License.
 
 Please read [LICENSE.md](LICENSE.md) file
